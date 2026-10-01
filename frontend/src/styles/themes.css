@@ -1,0 +1,26 @@
+:root {
+  color-scheme: light;
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+
+  --color-background: #0f172a;
+  --color-surface: #1e293b;
+
+  --color-header-background: #111827;
+  --color-header-text: #f8fafc;
+
+  --color-footer-background: #020617;
+  --color-footer-text: #ffffff;
+  --color-footer-text-muted: #94a3b8;
+  --color-footer-border: #1e293b;
+
+  --color-text: #f8fafc;
+  --color-text-muted: #94a3b8;
+
+  --color-border: #334155;
+
+  --color-primary: #3b82f6;
+  --color-primary-text: #ffffff;
+}
