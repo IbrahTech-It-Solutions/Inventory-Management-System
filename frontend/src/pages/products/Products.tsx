@@ -1,4 +1,5 @@
 import {
+  ArrowLeft,
   ImagePlus,
   Pencil,
   Plus,
@@ -6,11 +7,7 @@ import {
   Trash2,
   X,
 } from "lucide-react";
-import {
-  useMemo,
-  useState,
-  type ChangeEvent,
-} from "react";
+import { useEffect, useMemo, useState, type ChangeEvent } from "react";
 import type {
   Category,
   CategoryClassification,
@@ -95,24 +92,21 @@ const initialProducts: Product[] = [];
 const Products = () => {
   const { showToast } = useToast();
 
-  const [products, setProducts] =
-    useState<Product[]>(initialProducts);
+  const [products, setProducts] = useState<Product[]>(initialProducts);
 
   const [search, setSearch] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingProduct, setEditingProduct] =
-    useState<Product | null>(null);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
 
   const [name, setName] = useState("");
   const [images, setImages] = useState<string[]>([]);
   const [sellingPrice, setSellingPrice] = useState("");
   const [costPrice, setCostPrice] = useState("");
   const [quantity, setQuantity] = useState("");
-  const [quality, setQuality] =
-    useState<ProductQuality>("new");
+  const [quality, setQuality] = useState<ProductQuality>("new");
   const [description, setDescription] = useState("");
-  const [baseUnit, setBaseUnit] =
-    useState<BaseUnit>("piece");
+  const [baseUnit, setBaseUnit] = useState<BaseUnit>("piece");
   const [barcode, setBarcode] = useState("");
 
   const [categorySelection, setCategorySelection] =
@@ -126,14 +120,9 @@ const Products = () => {
     });
 
   const categoryOptions = useMemo(() => {
-    const createOptions = (
-      classification: CategoryClassification,
-    ) =>
+    const createOptions = (classification: CategoryClassification) =>
       categories
-        .filter(
-          (category) =>
-            category.classification === classification,
-        )
+        .filter((category) => category.classification === classification)
         .map((category) => ({
           value: category.id,
           label: `${category.name} (${category.sku})`,
@@ -150,11 +139,7 @@ const Products = () => {
   }, []);
 
   const generatedSku = useMemo(
-    () =>
-      generateProductSku(
-        categories,
-        categorySelection,
-      ),
+    () => generateProductSku(categories, categorySelection),
     [categorySelection],
   );
 
@@ -177,6 +162,45 @@ const Products = () => {
       );
     });
   }, [products, search]);
+
+  useEffect(() => {
+    if (!selectedProduct) {
+      return;
+    }
+
+    const currentProduct = products.find(
+      (product) => product.id === selectedProduct.id,
+    );
+
+    if (!currentProduct) {
+      setSelectedProduct(null);
+      return;
+    }
+
+    setSelectedProduct(currentProduct);
+  }, [products, selectedProduct]);
+
+  useEffect(() => {
+    if (!selectedProduct) {
+      return;
+    }
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setSelectedProduct(null);
+      }
+    };
+
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.body.style.overflow = originalOverflow;
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [selectedProduct]);
 
   const resetForm = () => {
     setEditingProduct(null);
@@ -235,6 +259,14 @@ const Products = () => {
     resetForm();
   };
 
+  const openProductDetails = (product: Product) => {
+    setSelectedProduct(product);
+  };
+
+  const closeProductDetails = () => {
+    setSelectedProduct(null);
+  };
+
   const handleCategoryChange = (
     field: keyof ProductCategorySelection,
     value: string,
@@ -245,52 +277,37 @@ const Products = () => {
     }));
   };
 
-  const handleImageChange = (
-    event: ChangeEvent<HTMLInputElement>,
-  ) => {
+  const handleImageChange = (event: ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files ?? []);
 
     if (files.length === 0) {
       return;
     }
 
-    const imageUrls = files.map((file) =>
-      URL.createObjectURL(file),
-    );
+    const imageUrls = files.map((file) => URL.createObjectURL(file));
 
-    setImages((current) => [
-      ...current,
-      ...imageUrls,
-    ]);
+    setImages((current) => [...current, ...imageUrls]);
 
     event.target.value = "";
   };
 
   const removeImage = (index: number) => {
     setImages((current) =>
-      current.filter(
-        (_, imageIndex) => imageIndex !== index,
-      ),
+      current.filter((_, imageIndex) => imageIndex !== index),
     );
   };
 
-  const getCategoryName = (
-    categoryId: string | null,
-  ) => {
+  const getCategoryName = (categoryId: string | null) => {
     if (!categoryId) {
       return "—";
     }
 
     return (
-      categories.find(
-        (category) => category.id === categoryId,
-      )?.name ?? "—"
+      categories.find((category) => category.id === categoryId)?.name ?? "—"
     );
   };
 
-  const getProductCategories = (
-    product: Product,
-  ) => {
+  const getProductCategories = (product: Product) => {
     return [
       getCategoryName(product.mainCategoryId),
       getCategoryName(product.subcategoryId),
@@ -303,6 +320,56 @@ const Products = () => {
       .join(", ");
   };
 
+  const getProductCategoryItems = (product: Product) => {
+    return [
+      {
+        label: "Main Category",
+        value: getCategoryName(product.mainCategoryId),
+      },
+      {
+        label: "Subcategory",
+        value: getCategoryName(product.subcategoryId),
+      },
+      {
+        label: "Type",
+        value: getCategoryName(product.typeId),
+      },
+      {
+        label: "Brand",
+        value: getCategoryName(product.brandId),
+      },
+      {
+        label: "Model",
+        value: getCategoryName(product.modelId),
+      },
+      {
+        label: "Variant",
+        value: getCategoryName(product.variantId),
+      },
+    ];
+  };
+
+  const formatPrice = (value: number) =>
+    value.toLocaleString("en-GH", {
+      style: "currency",
+      currency: "GHS",
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+
+  const formatDate = (value: string) => {
+    const date = new Date(value);
+
+    if (Number.isNaN(date.getTime())) {
+      return value;
+    }
+
+    return new Intl.DateTimeFormat("en-GH", {
+      dateStyle: "medium",
+      timeStyle: "short",
+    }).format(date);
+  };
+
   const handleSubmit = () => {
     const trimmedName = name.trim();
     const parsedSellingPrice = Number(sellingPrice);
@@ -313,8 +380,7 @@ const Products = () => {
       showToast({
         type: "error",
         title: "Product name required",
-        message:
-          "Please enter a product name before saving.",
+        message: "Please enter a product name before saving.",
       });
       return;
     }
@@ -327,38 +393,30 @@ const Products = () => {
       showToast({
         type: "error",
         title: "Invalid product values",
-        message:
-          "Please enter valid prices and quantity.",
+        message: "Please enter valid prices and quantity.",
       });
       return;
     }
 
-    if (
-      parsedSellingPrice < 0 ||
-      parsedCostPrice < 0 ||
-      parsedQuantity < 0
-    ) {
+    if (parsedSellingPrice < 0 || parsedCostPrice < 0 || parsedQuantity < 0) {
       showToast({
         type: "error",
         title: "Invalid product values",
-        message:
-          "Prices and quantity cannot be negative.",
+        message: "Prices and quantity cannot be negative.",
       });
       return;
     }
 
     const duplicateSku = products.some(
       (product) =>
-        product.id !== editingProduct?.id &&
-        product.sku === generatedSku,
+        product.id !== editingProduct?.id && product.sku === generatedSku,
     );
 
     if (duplicateSku) {
       showToast({
         type: "error",
         title: "Duplicate SKU",
-        message:
-          "A product with this category combination already exists.",
+        message: "A product with this category combination already exists.",
       });
       return;
     }
@@ -380,20 +438,12 @@ const Products = () => {
                 description: description.trim(),
                 baseUnit,
                 barcode: barcode.trim() || null,
-                mainCategoryId:
-                  categorySelection.mainCategoryId ||
-                  null,
-                subcategoryId:
-                  categorySelection.subcategoryId ||
-                  null,
-                typeId:
-                  categorySelection.typeId || null,
-                brandId:
-                  categorySelection.brandId || null,
-                modelId:
-                  categorySelection.modelId || null,
-                variantId:
-                  categorySelection.variantId || null,
+                mainCategoryId: categorySelection.mainCategoryId || null,
+                subcategoryId: categorySelection.subcategoryId || null,
+                typeId: categorySelection.typeId || null,
+                brandId: categorySelection.brandId || null,
+                modelId: categorySelection.modelId || null,
+                variantId: categorySelection.variantId || null,
                 sku: generatedSku,
                 updatedAt: now,
               }
@@ -406,8 +456,7 @@ const Products = () => {
       showToast({
         type: "success",
         title: "Product updated",
-        message:
-          "The product was updated successfully.",
+        message: "The product was updated successfully.",
       });
 
       return;
@@ -424,10 +473,8 @@ const Products = () => {
       description: description.trim(),
       baseUnit,
       barcode: barcode.trim() || null,
-      mainCategoryId:
-        categorySelection.mainCategoryId || null,
-      subcategoryId:
-        categorySelection.subcategoryId || null,
+      mainCategoryId: categorySelection.mainCategoryId || null,
+      subcategoryId: categorySelection.subcategoryId || null,
       typeId: categorySelection.typeId || null,
       brandId: categorySelection.brandId || null,
       modelId: categorySelection.modelId || null,
@@ -437,39 +484,38 @@ const Products = () => {
       updatedAt: now,
     };
 
-    setProducts((current) => [
-      newProduct,
-      ...current,
-    ]);
+    setProducts((current) => [newProduct, ...current]);
 
     closeModal();
 
     showToast({
       type: "success",
       title: "Product created",
-      message:
-        "The product was created successfully.",
+      message: "The product was created successfully.",
     });
   };
 
   const handleDelete = (id: string) => {
-    const product = products.find(
-      (item) => item.id === id,
-    );
+    const product = products.find((item) => item.id === id);
 
     if (!product) {
       return;
     }
 
-    setProducts((current) =>
-      current.filter((item) => item.id !== id),
-    );
+    setProducts((current) => current.filter((item) => item.id !== id));
+
+    setSelectedProduct(null);
 
     showToast({
       type: "success",
       title: "Product deleted",
       message: `${product.name} was deleted successfully.`,
     });
+  };
+
+  const handleDetailsEdit = (product: Product) => {
+    setSelectedProduct(null);
+    openEditModal(product);
   };
 
   return (
@@ -479,34 +525,24 @@ const Products = () => {
           <h1>Products</h1>
 
           <p>
-            Manage products, pricing, stock,
-            classifications, and product information.
+            Manage products, pricing, stock, classifications, and product
+            information.
           </p>
         </div>
 
-        <Button
-          type="button"
-          onClick={openCreateModal}
-        >
-          <Plus size={18} />
+        <Button type="button" onClick={openCreateModal}>
+          <Plus size={18} aria-hidden="true" />
           Add Product
         </Button>
       </header>
 
       <section className={styles.toolbar}>
         <div className={styles.search}>
-
-          <Search
-          className={styles.searchIcon}
-            size={18}
-            aria-hidden="true"
-          />
+          <Search className={styles.searchIcon} size={18} aria-hidden="true" />
           <Input
             label="Search"
             value={search}
-            onChange={(value) =>
-              setSearch(value)
-            }
+            onChange={(value) => setSearch(value)}
             placeholder="Search products..."
             aria-label="Search products"
           />
@@ -518,9 +554,7 @@ const Products = () => {
           <div>
             <h2>Product List</h2>
 
-            <span>
-              {filteredProducts.length} products
-            </span>
+            <span>{filteredProducts.length} products</span>
           </div>
         </div>
 
@@ -528,10 +562,7 @@ const Products = () => {
           <div className={styles.empty}>
             <h3>No products found</h3>
 
-            <p>
-              Try changing your search or create a
-              new product.
-            </p>
+            <p>Try changing your search or create a new product.</p>
           </div>
         ) : (
           <div className={styles.tableWrapper}>
@@ -552,106 +583,79 @@ const Products = () => {
 
               <tbody>
                 {filteredProducts.map((product) => (
-                  <tr key={product.id}>
+                  <tr
+                    key={product.id}
+                    className={styles.productRow}
+                    onDoubleClick={() => openProductDetails(product)}
+                  >
                     <td>
-                      <div
-                        className={
-                          styles.productCell
-                        }
+                      <button
+                        type="button"
+                        className={styles.productCellButton}
+                        onClick={() => openProductDetails(product)}
+                        aria-label={`View ${product.name} details`}
                       >
-                        {product.images[0] ? (
-                          <img
-                            src={product.images[0]}
-                            alt=""
-                            className={
-                              styles.thumbnail
-                            }
-                          />
-                        ) : (
-                          <div
-                            className={
-                              styles.imagePlaceholder
-                            }
-                            aria-hidden="true"
-                          >
-                            <ImagePlus size={18} />
-                          </div>
-                        )}
+                        <div className={styles.productCell}>
+                          {product.images[0] ? (
+                            <img
+                              src={product.images[0]}
+                              alt=""
+                              className={styles.thumbnail}
+                            />
+                          ) : (
+                            <div
+                              className={styles.imagePlaceholder}
+                              aria-hidden="true"
+                            >
+                              <ImagePlus size={18} />
+                            </div>
+                          )}
 
-                        <span
-                          className={styles.name}
-                        >
-                          {product.name}
-                        </span>
-                      </div>
+                          <span className={styles.name}>{product.name}</span>
+                        </div>
+                      </button>
                     </td>
 
                     <td>
-                      <span
-                        className={styles.sku}
-                      >
-                        {product.sku}
+                      <span className={styles.sku}>{product.sku}</span>
+                    </td>
+
+                    <td>
+                      <span className={styles.categories}>
+                        {getProductCategories(product)}
                       </span>
                     </td>
 
-                    <td>
-                      <span
-                        className={
-                          styles.categories
-                        }
-                      >
-                        {getProductCategories(
-                          product,
-                        )}
-                      </span>
-                    </td>
+                    <td>{formatPrice(product.costPrice)}</td>
 
-                    <td>
-                      {product.costPrice.toLocaleString()}
-                    </td>
-
-                    <td>
-                      {product.sellingPrice.toLocaleString()}
-                    </td>
+                    <td>{formatPrice(product.sellingPrice)}</td>
 
                     <td>{product.quantity}</td>
 
                     <td>{product.baseUnit}</td>
 
                     <td>
-                      <span
-                        className={styles.badge}
-                      >
-                        {product.quality}
-                      </span>
+                      <span className={styles.badge}>{product.quality}</span>
                     </td>
 
                     <td>
-                      <div
-                        className={styles.actions}
-                      >
+                      <div className={styles.actions}>
                         <Button
                           type="button"
                           variant="icon"
                           aria-label={`Edit ${product.name}`}
-                          onClick={() =>
-                            openEditModal(product)
-                          }
+                          onClick={() => openEditModal(product)}
                         >
-                          <Pencil size={17} />
+                          <Pencil size={17} aria-hidden="true" />
                         </Button>
 
                         <Button
                           type="button"
                           variant="icon"
                           aria-label={`Delete ${product.name}`}
-                          onClick={() =>
-                            handleDelete(
-                              product.id,
-                            )
-                          }
+                          onClick={() => handleDelete(product.id)}
                         >
-                          <Trash2 size={17} />
+                          <Trash2 size={17} aria-hidden="true" />
                         </Button>
                       </div>
                     </td>
@@ -666,29 +670,16 @@ const Products = () => {
       <Modal
         open={isModalOpen}
         onClose={closeModal}
-        title={
-          editingProduct
-            ? "Edit Product"
-            : "Create Product"
-        }
+        title={editingProduct ? "Edit Product" : "Create Product"}
         description="Add the product details, classification, pricing, stock, and images."
         footer={
           <>
-            <Button
-              type="button"
-              variant="border"
-              onClick={closeModal}
-            >
+            <Button type="button" variant="border" onClick={closeModal}>
               Cancel
             </Button>
 
-            <Button
-              type="button"
-              onClick={handleSubmit}
-            >
-              {editingProduct
-                ? "Save Changes"
-                : "Create Product"}
+            <Button type="button" onClick={handleSubmit}>
+              {editingProduct ? "Save Changes" : "Create Product"}
             </Button>
           </>
         }
@@ -697,17 +688,13 @@ const Products = () => {
           <Input
             label="Product Name"
             value={name}
-            onChange={(value) =>
-              setName(value)
-            }
+            onChange={(value) => setName(value)}
             placeholder="Enter product name"
             required
           />
 
           <div className={styles.field}>
-            <label htmlFor="product-images">
-              Product Images
-            </label>
+            <label htmlFor="product-images">Product Images</label>
 
             <input
               id="product-images"
@@ -720,28 +707,16 @@ const Products = () => {
             {images.length > 0 && (
               <div className={styles.imageGrid}>
                 {images.map((image, index) => (
-                  <div
-                    className={styles.imageItem}
-                    key={`${image}-${index}`}
-                  >
-                    <img
-                      src={image}
-                      alt={`Product ${index + 1}`}
-                    />
+                  <div className={styles.imageItem} key={`${image}-${index}`}>
+                    <img src={image} alt={`Product ${index + 1}`} />
 
                     <button
                       type="button"
-                      className={
-                        styles.removeImage
-                      }
-                      aria-label={`Remove image ${
-                        index + 1
-                      }`}
-                      onClick={() =>
-                        removeImage(index)
-                      }
+                      className={styles.removeImage}
+                      aria-label={`Remove image ${index + 1}`}
+                      onClick={() => removeImage(index)}
                     >
-                      <X size={15} />
+                      <X size={15} aria-hidden="true" />
                     </button>
                   </div>
                 ))}
@@ -756,9 +731,7 @@ const Products = () => {
               min="0"
               step="0.01"
               value={costPrice}
-              onChange={(value) =>
-                setCostPrice(value)
-              }
+              onChange={(value) => setCostPrice(value)}
               placeholder="0.00"
               required
             />
@@ -769,9 +742,7 @@ const Products = () => {
               min="0"
               step="0.01"
               value={sellingPrice}
-              onChange={(value) =>
-                setSellingPrice(value)
-              }
+              onChange={(value) => setSellingPrice(value)}
               placeholder="0.00"
               required
             />
@@ -784,9 +755,7 @@ const Products = () => {
               min="0"
               step="1"
               value={quantity}
-              onChange={(value) =>
-                setQuantity(value)
-              }
+              onChange={(value) => setQuantity(value)}
               placeholder="0"
               required
             />
@@ -794,9 +763,7 @@ const Products = () => {
             <Select
               label="Base Unit"
               value={baseUnit}
-              onChange={(value) =>
-                setBaseUnit(value as BaseUnit)
-              }
+              onChange={(value) => setBaseUnit(value as BaseUnit)}
               options={BASE_UNITS}
               required
             />
@@ -805,11 +772,7 @@ const Products = () => {
           <Select
             label="Quality"
             value={quality}
-            onChange={(value) =>
-              setQuality(
-                value as ProductQuality,
-              )
-            }
+            onChange={(value) => setQuality(value as ProductQuality)}
             options={PRODUCT_QUALITIES}
             required
           />
@@ -817,125 +780,71 @@ const Products = () => {
           <div className={styles.categorySection}>
             <div className={styles.sectionHeader}>
               <div>
-                <h3>
-                  Product Classification
-                </h3>
+                <h3>Product Classification</h3>
 
                 <p>
-                  Select the category item for each
-                  classification. Unselected
-                  classifications use 000 in the
-                  SKU.
+                  Select the category item for each classification. Unselected
+                  classifications use 000 in the SKU.
                 </p>
               </div>
             </div>
 
-            <div
-              className={styles.categoryGrid}
-            >
+            <div className={styles.categoryGrid}>
               <Select
                 label="Main Category"
-                value={
-                  categorySelection.mainCategoryId
-                }
+                value={categorySelection.mainCategoryId}
                 onChange={(value) =>
-                  handleCategoryChange(
-                    "mainCategoryId",
-                    value,
-                  )
+                  handleCategoryChange("mainCategoryId", value)
                 }
-                options={
-                  categoryOptions.mainCategory
-                }
+                options={categoryOptions.mainCategory}
                 placeholder="Select main category"
               />
 
               <Select
                 label="Subcategory"
-                value={
-                  categorySelection.subcategoryId
-                }
+                value={categorySelection.subcategoryId}
                 onChange={(value) =>
-                  handleCategoryChange(
-                    "subcategoryId",
-                    value,
-                  )
+                  handleCategoryChange("subcategoryId", value)
                 }
-                options={
-                  categoryOptions.subcategory
-                }
+                options={categoryOptions.subcategory}
                 placeholder="Select subcategory"
               />
 
               <Select
                 label="Type"
-                value={
-                  categorySelection.typeId
-                }
-                onChange={(value) =>
-                  handleCategoryChange(
-                    "typeId",
-                    value,
-                  )
-                }
+                value={categorySelection.typeId}
+                onChange={(value) => handleCategoryChange("typeId", value)}
                 options={categoryOptions.type}
                 placeholder="Select type"
               />
 
               <Select
                 label="Brand"
-                value={
-                  categorySelection.brandId
-                }
-                onChange={(value) =>
-                  handleCategoryChange(
-                    "brandId",
-                    value,
-                  )
-                }
+                value={categorySelection.brandId}
+                onChange={(value) => handleCategoryChange("brandId", value)}
                 options={categoryOptions.brand}
                 placeholder="Select brand"
               />
 
               <Select
                 label="Model"
-                value={
-                  categorySelection.modelId
-                }
-                onChange={(value) =>
-                  handleCategoryChange(
-                    "modelId",
-                    value,
-                  )
-                }
+                value={categorySelection.modelId}
+                onChange={(value) => handleCategoryChange("modelId", value)}
                 options={categoryOptions.model}
                 placeholder="Select model"
               />
 
               <Select
                 label="Variant"
-                value={
-                  categorySelection.variantId
-                }
-                onChange={(value) =>
-                  handleCategoryChange(
-                    "variantId",
-                    value,
-                  )
-                }
-                options={
-                  categoryOptions.variant
-                }
+                value={categorySelection.variantId}
+                onChange={(value) => handleCategoryChange("variantId", value)}
+                options={categoryOptions.variant}
                 placeholder="Select variant"
               />
             </div>
 
             <div className={styles.skuPreview}>
-              <span
-                className={styles.skuLabel}
-              >
-                Product SKU
-              </span>
+              <span className={styles.skuLabel}>Product SKU</span>
 
               <code>{generatedSku}</code>
             </div>
@@ -944,23 +853,204 @@ const Products = () => {
           <Input
             label="Barcode"
             value={barcode}
-            onChange={(value) =>
-              setBarcode(value)
-            }
+            onChange={(value) => setBarcode(value)}
             placeholder="Optional"
           />
 
           <Input
             label="Description"
             value={description}
-            onChange={(value) =>
-              setDescription(value)
-            }
+            onChange={(value) => setDescription(value)}
             placeholder="Describe the product..."
             multiline
           />
         </div>
       </Modal>
+
+      {selectedProduct && (
+        <div
+          className={styles.detailsOverlay}
+          role="presentation"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) {
+              closeProductDetails();
+            }
+          }}
+        >
+          <aside
+            className={styles.detailsPanel}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="product-details-title"
+          >
+            <header className={styles.detailsHeader}>
+              <button
+                type="button"
+                className={styles.backButton}
+                onClick={closeProductDetails}
+              >
+                <ArrowLeft size={18} aria-hidden="true" />
+                Back
+              </button>
+
+              <button
+                type="button"
+                className={styles.detailsClose}
+                onClick={closeProductDetails}
+                aria-label="Close product details"
+              >
+                <X size={19} aria-hidden="true" />
+              </button>
+            </header>
+
+            <div className={styles.detailsContent}>
+              <div className={styles.detailsProductHeader}>
+                <div className={styles.detailsMainImage}>
+                  {selectedProduct.images[0] ? (
+                    <img
+                      src={selectedProduct.images[0]}
+                      alt={selectedProduct.name}
+                    />
+                  ) : (
+                    <ImagePlus size={42} aria-hidden="true" />
+                  )}
+                </div>
+
+                <div className={styles.detailsHeading}>
+                  <span className={styles.detailsEyebrow}>Product Details</span>
+
+                  <h2 id="product-details-title">{selectedProduct.name}</h2>
+
+                  <code className={styles.detailsSku}>
+                    {selectedProduct.sku}
+                  </code>
+
+                  <span className={styles.detailsQuality}>
+                    {selectedProduct.quality}
+                  </span>
+                </div>
+              </div>
+
+              {selectedProduct.images.length > 1 && (
+                <div className={styles.detailsGallery}>
+                  {selectedProduct.images.map((image, index) => (
+                    <img
+                      key={`${image}-${index}`}
+                      src={image}
+                      alt={`${selectedProduct.name} ${index + 1}`}
+                    />
+                  ))}
+                </div>
+              )}
+
+              <div className={styles.detailsActions}>
+                <Button
+                  type="button"
+                  onClick={() => handleDetailsEdit(selectedProduct)}
+                >
+                  <Pencil size={16} aria-hidden="true" />
+                  Edit Product
+                </Button>
+
+                <Button
+                  type="button"
+                  variant="border"
+                  onClick={() => handleDelete(selectedProduct.id)}
+                >
+                  <Trash2 size={16} aria-hidden="true" />
+                  Delete
+                </Button>
+              </div>
+
+              <section className={styles.detailsSection}>
+                <div className={styles.detailsSectionHeader}>
+                  <h3>Pricing & Stock</h3>
+                </div>
+
+                <div className={styles.detailsInfoGrid}>
+                  <div className={styles.detailItem}>
+                    <span>Cost Price</span>
+                    <strong>{formatPrice(selectedProduct.costPrice)}</strong>
+                  </div>
+
+                  <div className={styles.detailItem}>
+                    <span>Selling Price</span>
+                    <strong>{formatPrice(selectedProduct.sellingPrice)}</strong>
+                  </div>
+
+                  <div className={styles.detailItem}>
+                    <span>Quantity</span>
+                    <strong>{selectedProduct.quantity}</strong>
+                  </div>
+
+                  <div className={styles.detailItem}>
+                    <span>Base Unit</span>
+                    <strong>{selectedProduct.baseUnit}</strong>
+                  </div>
+                </div>
+              </section>
+
+              <section className={styles.detailsSection}>
+                <div className={styles.detailsSectionHeader}>
+                  <h3>Classification</h3>
+                </div>
+
+                <div className={styles.classificationList}>
+                  {getProductCategoryItems(selectedProduct).map((item) => (
+                    <div key={item.label} className={styles.classificationItem}>
+                      <span>{item.label}</span>
+
+                      <strong>{item.value}</strong>
+                    </div>
+                  ))}
+                </div>
+              </section>
+
+              <section className={styles.detailsSection}>
+                <div className={styles.detailsSectionHeader}>
+                  <h3>Product Information</h3>
+                </div>
+
+                <div className={styles.classificationList}>
+                  <div className={styles.classificationItem}>
+                    <span>Barcode</span>
+
+                    <strong>{selectedProduct.barcode ?? "Not provided"}</strong>
+                  </div>
+
+                  <div className={styles.classificationItem}>
+                    <span>Product ID</span>
+
+                    <strong>{selectedProduct.id}</strong>
+                  </div>
+
+                  <div className={styles.classificationItem}>
+                    <span>Created</span>
+
+                    <strong>{formatDate(selectedProduct.createdAt)}</strong>
+                  </div>
+
+                  <div className={styles.classificationItem}>
+                    <span>Last Updated</span>
+
+                    <strong>{formatDate(selectedProduct.updatedAt)}</strong>
+                  </div>
+                </div>
+              </section>
+
+              <section className={styles.detailsSection}>
+                <div className={styles.detailsSectionHeader}>
+                  <h3>Description</h3>
+                </div>
+
+                <p className={styles.descriptionText}>
+                  {selectedProduct.description || "No description provided."}
+                </p>
+              </section>
+            </div>
+          </aside>
+        </div>
+      )}
     </main>
   );
 };

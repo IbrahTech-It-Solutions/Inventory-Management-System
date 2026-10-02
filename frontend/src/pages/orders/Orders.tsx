@@ -1,6 +1,6 @@
 import React from 'react'
 
-function Suppliers() {
+const Orders = () => {
   return (
     <div>
       
@@ -8,4 +8,4 @@ function Suppliers() {
   )
 }
 
-export default Suppliers
+export default Orders

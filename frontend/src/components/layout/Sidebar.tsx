@@ -38,6 +38,11 @@ type NavigationGroup = {
   items: NavigationItem[];
 };
 
+type FloatingMenuPosition = {
+  top: number;
+  left: number;
+};
+
 const navigationGroups: NavigationGroup[] = [
   {
     label: "Inventory",
@@ -101,7 +106,7 @@ const navigationGroups: NavigationGroup[] = [
         icon: Truck,
       },
       {
-        to: "/user",
+        to: "/customers",
         label: "Customers",
         icon: UserRound,
       },
@@ -111,6 +116,11 @@ const navigationGroups: NavigationGroup[] = [
     label: "Analytics",
     icon: BarChart3,
     items: [
+      {
+        to: "/stats",
+        label: "Stats",
+        icon: BarChart3,
+      },
       {
         to: "/reports",
         label: "Reports",
@@ -123,7 +133,7 @@ const navigationGroups: NavigationGroup[] = [
     icon: Settings,
     items: [
       {
-        to: "/users",
+        to: "/users-permissions",
         label: "Users & Permissions",
         icon: Users,
       },
@@ -146,16 +156,20 @@ const navigationGroups: NavigationGroup[] = [
   },
 ];
 
-const getInitialCollapsedState = () => {
+const getInitialCollapsedState = (): boolean => {
   return localStorage.getItem(SIDEBAR_STORAGE_KEY) === "true";
 };
 
 const Sidebar = () => {
-  const [isCollapsed, setIsCollapsed] = useState(getInitialCollapsedState);
+  const [isCollapsed, setIsCollapsed] = useState(
+    getInitialCollapsedState,
+  );
 
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
-  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({
+  const [openGroups, setOpenGroups] = useState<
+    Record<string, boolean>
+  >({
     Inventory: true,
     Operations: false,
     Partners: false,
@@ -163,11 +177,25 @@ const Sidebar = () => {
     System: false,
   });
 
+  const [activeFloatingGroup, setActiveFloatingGroup] =
+    useState<string | null>(null);
+
+  const [floatingMenuPosition, setFloatingMenuPosition] =
+    useState<FloatingMenuPosition | null>(null);
+
   const handleToggle = () => {
     setIsCollapsed((current) => {
       const nextState = !current;
 
-      localStorage.setItem(SIDEBAR_STORAGE_KEY, String(nextState));
+      localStorage.setItem(
+        SIDEBAR_STORAGE_KEY,
+        String(nextState),
+      );
+
+      if (!nextState) {
+        setActiveFloatingGroup(null);
+        setFloatingMenuPosition(null);
+      }
 
       return nextState;
     });
@@ -175,19 +203,40 @@ const Sidebar = () => {
 
   const handleNavigation = () => {
     setIsMobileOpen(false);
+    setActiveFloatingGroup(null);
+    setFloatingMenuPosition(null);
   };
 
-  const handleGroupToggle = (label: string) => {
-    if (isCollapsed) {
-      setIsCollapsed(false);
-
-      localStorage.setItem(SIDEBAR_STORAGE_KEY, "false");
-    }
+  const handleGroupToggle = (
+    label: string,
+    event: React.MouseEvent<HTMLButtonElement>,
+  ) => {
+    const nextIsOpen = !openGroups[label];
 
     setOpenGroups((current) => ({
       ...current,
-      [label]: !current[label],
+      [label]: nextIsOpen,
     }));
+
+    if (!isCollapsed) {
+      return;
+    }
+
+    if (!nextIsOpen) {
+      setActiveFloatingGroup(null);
+      setFloatingMenuPosition(null);
+      return;
+    }
+
+    const buttonRect =
+      event.currentTarget.getBoundingClientRect();
+
+    setActiveFloatingGroup(label);
+
+    setFloatingMenuPosition({
+      top: buttonRect.top,
+      left: buttonRect.right + 10,
+    });
   };
 
   return (
@@ -198,6 +247,8 @@ const Sidebar = () => {
         onClick={() => {
           setIsMobileOpen(true);
           setIsCollapsed(false);
+          setActiveFloatingGroup(null);
+          setFloatingMenuPosition(null);
         }}
         aria-label="Open navigation"
         aria-expanded={isMobileOpen}
@@ -221,10 +272,20 @@ const Sidebar = () => {
       >
         <div className={styles.top}>
           <div className={styles.mobileHeader}>
-            <NavLink to="/" className={styles.brand} onClick={handleNavigation}>
-              <img src="/favicon.svg" alt="" className={styles.logo} />
+            <NavLink
+              to="/"
+              className={styles.brand}
+              onClick={handleNavigation}
+            >
+              <img
+                src="/favicon.svg"
+                alt=""
+                className={styles.logo}
+              />
 
-              <span className={styles.brandName}>Inventory</span>
+              <span className={styles.brandName}>
+                Inventory
+              </span>
             </NavLink>
 
             <button
@@ -243,10 +304,16 @@ const Sidebar = () => {
               className={styles.brand}
               title={isCollapsed ? "Inventory" : undefined}
             >
-              <img src="/favicon.svg" alt="" className={styles.logo} />
+              <img
+                src="/favicon.svg"
+                alt=""
+                className={styles.logo}
+              />
 
               {!isCollapsed && (
-                <span className={styles.brandName}>Inventory</span>
+                <span className={styles.brandName}>
+                  Inventory
+                </span>
               )}
             </NavLink>
 
@@ -254,8 +321,16 @@ const Sidebar = () => {
               type="button"
               className={styles.toggle}
               onClick={handleToggle}
-              aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-              title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+              aria-label={
+                isCollapsed
+                  ? "Expand sidebar"
+                  : "Collapse sidebar"
+              }
+              title={
+                isCollapsed
+                  ? "Expand sidebar"
+                  : "Collapse sidebar"
+              }
             >
               {isCollapsed ? (
                 <ChevronRight size={18} />
@@ -265,14 +340,21 @@ const Sidebar = () => {
             </button>
           </div>
 
-          <nav className={styles.navigation} aria-label="Main navigation">
+          <nav
+            className={styles.navigation}
+            aria-label="Main navigation"
+          >
             <NavLink
               to="/dashboard"
               className={styles.link}
               title={isCollapsed ? "Dashboard" : undefined}
               onClick={handleNavigation}
             >
-              <LayoutDashboard size={19} strokeWidth={1.8} aria-hidden="true" />
+              <LayoutDashboard
+                size={19}
+                strokeWidth={1.8}
+                aria-hidden="true"
+              />
 
               {!isCollapsed && <span>Dashboard</span>}
             </NavLink>
@@ -283,19 +365,30 @@ const Sidebar = () => {
                 const isOpen = openGroups[group.label];
 
                 return (
-                  <div key={group.label} className={styles.group}>
+                  <div
+                    key={group.label}
+                    className={styles.group}
+                  >
                     <button
                       type="button"
                       className={styles.groupButton}
-                      onClick={() => handleGroupToggle(group.label)}
-                      title={isCollapsed ? group.label : undefined}
+                      onClick={(event) =>
+                        handleGroupToggle(group.label, event)
+                      }
+                      title={
+                        isCollapsed
+                          ? group.label
+                          : undefined
+                      }
                       aria-expanded={isOpen}
                     >
-                      <GroupIcon
-                        size={18}
-                        strokeWidth={1.8}
-                        aria-hidden="true"
-                      />
+                      <span className={styles.groupIcon}>
+                        <GroupIcon
+                          size={18}
+                          strokeWidth={1.8}
+                          aria-hidden="true"
+                        />
+                      </span>
 
                       {!isCollapsed && (
                         <>
@@ -307,32 +400,55 @@ const Sidebar = () => {
                             size={16}
                             strokeWidth={1.8}
                             className={`${styles.groupChevron} ${
-                              isOpen ? styles.groupChevronOpen : ""
+                              isOpen
+                                ? styles.groupChevronOpen
+                                : ""
                             }`}
                             aria-hidden="true"
                           />
                         </>
                       )}
+
+                      {isCollapsed && (
+                        <ChevronRight
+                          size={12}
+                          strokeWidth={2}
+                          className={`${styles.collapsedArrow} ${
+                            isOpen
+                              ? styles.collapsedArrowOpen
+                              : ""
+                          }`}
+                          aria-hidden="true"
+                        />
+                      )}
                     </button>
 
                     {!isCollapsed && isOpen && (
                       <div className={styles.submenu}>
-                        {group.items.map(({ to, label, icon: Icon }) => (
-                          <NavLink
-                            key={to}
-                            to={to}
-                            className={styles.subLink}
-                            onClick={handleNavigation}
-                          >
-                            <Icon
-                              size={17}
-                              strokeWidth={1.8}
-                              aria-hidden="true"
-                            />
+                        {group.items.map(
+                          ({ to, label, icon: Icon }) => (
+                            <NavLink
+                              key={to}
+                              to={to}
+                              className={styles.subLink}
+                              onClick={handleNavigation}
+                            >
+                              <span
+                                className={
+                                  styles.subLinkIcon
+                                }
+                              >
+                                <Icon
+                                  size={17}
+                                  strokeWidth={1.8}
+                                  aria-hidden="true"
+                                />
+                              </span>
 
-                            <span>{label}</span>
-                          </NavLink>
-                        ))}
+                              <span>{label}</span>
+                            </NavLink>
+                          ),
+                        )}
                       </div>
                     )}
                   </div>
@@ -343,16 +459,27 @@ const Sidebar = () => {
         </div>
 
         <div className={styles.footer}>
-          <button type="button" className={styles.user} title="User profile">
-            <span className={styles.avatar} aria-hidden="true">
+          <button
+            type="button"
+            className={styles.user}
+            title="User profile"
+          >
+            <span
+              className={styles.avatar}
+              aria-hidden="true"
+            >
               I
             </span>
 
             {!isCollapsed && (
               <span className={styles.userInfo}>
-                <span className={styles.userName}>Inventory User</span>
+                <span className={styles.userName}>
+                  Inventory User
+                </span>
 
-                <span className={styles.userRole}>Administrator</span>
+                <span className={styles.userRole}>
+                  Administrator
+                </span>
               </span>
             )}
           </button>
@@ -363,12 +490,56 @@ const Sidebar = () => {
             title="Change language"
             aria-label="Change language"
           >
-            <Globe2 size={18} strokeWidth={1.8} aria-hidden="true" />
+            <Globe2
+              size={18}
+              strokeWidth={1.8}
+              aria-hidden="true"
+            />
 
             {!isCollapsed && <span>English</span>}
           </button>
         </div>
       </aside>
+
+      {isCollapsed &&
+        activeFloatingGroup &&
+        floatingMenuPosition && (
+          <div
+            className={styles.floatingSubmenu}
+            style={{
+              top: floatingMenuPosition.top,
+              left: floatingMenuPosition.left,
+            }}
+          >
+            <div className={styles.floatingSubmenuHeader}>
+              {activeFloatingGroup}
+            </div>
+
+            {navigationGroups
+              .find(
+                (group) =>
+                  group.label === activeFloatingGroup,
+              )
+              ?.items.map(({ to, label, icon: Icon }) => (
+                <NavLink
+                  key={to}
+                  to={to}
+                  className={styles.floatingSubLink}
+                  onClick={handleNavigation}
+                >
+                  <span className={styles.floatingSubLinkIcon}>
+                    <Icon
+                      size={16}
+                      strokeWidth={1.8}
+                      aria-hidden="true"
+                    />
+                  </span>
+
+                  <span>{label}</span>
+                </NavLink>
+              ))}
+          </div>
+        )}
     </>
   );
 };
