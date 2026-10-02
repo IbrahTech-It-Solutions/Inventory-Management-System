@@ -7,6 +7,7 @@ export type ProductQuality =
 
 export type BaseUnit =
   | "piece"
+  | "bag"
   | "box"
   | "pack"
   | "kg"

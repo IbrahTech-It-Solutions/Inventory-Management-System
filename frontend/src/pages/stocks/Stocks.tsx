@@ -1,13 +1,11 @@
 import { useMemo, useState } from "react";
 import {
-  ArrowDownToLine,
-  ArrowUpFromLine,
   ChevronDown,
-  ClipboardList,
+  Edit3,
   Package,
+  Plus,
   Search,
-  SlidersHorizontal,
-  TriangleAlert,
+  Trash2,
   X,
 } from "lucide-react";
 import styles from "./Stock.module.css";
@@ -27,21 +25,11 @@ type StockItem = {
   status: StockStatus;
 };
 
-type MovementType =
-  | "Purchase"
-  | "Sale"
-  | "Adjustment"
-  | "Transfer";
-
-type StockMovement = {
-  id: string;
-  date: string;
+type StockForm = {
   product: string;
-  type: MovementType;
-  quantity: number;
   warehouse: string;
-  reference: string;
-  user: string;
+  quantity: string;
+  minimumStock: string;
 };
 
 const initialStock: StockItem[] = [
@@ -119,61 +107,52 @@ const initialStock: StockItem[] = [
   },
 ];
 
-const initialMovements: StockMovement[] = [
+const productOptions = [
   {
-    id: "1",
-    date: "2026-10-01 09:42",
-    product: "Galaxy S24",
-    type: "Purchase",
-    quantity: 20,
-    warehouse: "Main Warehouse",
-    reference: "PO-0012",
-    user: "Admin",
+    value: "Galaxy S24",
+    label: "Galaxy S24",
+    sku: "MELE-SSMA-TSMT-BSAM-MGY4-V256",
+    category: "Smartphones",
+    unitValue: 850,
   },
   {
-    id: "2",
-    date: "2026-10-01 09:15",
-    product: "iPhone 15",
-    type: "Sale",
-    quantity: -2,
-    warehouse: "Main Warehouse",
-    reference: "SO-0041",
-    user: "Admin",
+    value: "iPhone 15",
+    label: "iPhone 15",
+    sku: "MELE-SSMA-TSMT-BAPP-MIP5-V128",
+    category: "Smartphones",
+    unitValue: 1150,
   },
   {
-    id: "3",
-    date: "2026-09-30 16:30",
-    product: "Galaxy S24",
-    type: "Adjustment",
-    quantity: -1,
-    warehouse: "Main Warehouse",
-    reference: "ADJ-002",
-    user: "Manager",
+    value: "MacBook Air M3",
+    label: "MacBook Air M3",
+    sku: "MELE-CLPT-TLAP-BAPP-MM3A-V256",
+    category: "Laptops",
+    unitValue: 1300,
   },
   {
-    id: "4",
-    date: "2026-09-30 14:18",
-    product: "Wireless Mouse",
-    type: "Transfer",
-    quantity: 10,
-    warehouse: "Accra Store",
-    reference: "TR-0008",
-    user: "Admin",
+    value: "Wireless Mouse",
+    label: "Wireless Mouse",
+    sku: "MELE-ACCS-TMOU-BLOG-MWM1-VBLK",
+    category: "Accessories",
+    unitValue: 50,
   },
   {
-    id: "5",
-    date: "2026-09-29 11:05",
-    product: "MacBook Air M3",
-    type: "Purchase",
-    quantity: 8,
-    warehouse: "Main Warehouse",
-    reference: "PO-0011",
-    user: "Admin",
+    value: "USB-C Cable",
+    label: "USB-C Cable",
+    sku: "MELE-ACCS-TCAB-BANK-MUC1-V1M",
+    category: "Accessories",
+    unitValue: 25,
+  },
+  {
+    value: "Samsung 55-inch TV",
+    label: "Samsung 55-inch TV",
+    sku: "MELE-TVTV-TTV-BSAM-M55Q-V4K",
+    category: "Televisions",
+    unitValue: 900,
   },
 ];
 
 const warehouses = [
-  "All Warehouses",
   "Main Warehouse",
   "Accra Store",
   "Kumasi Warehouse",
@@ -194,12 +173,34 @@ const statuses = [
   "Out of Stock",
 ];
 
+const emptyForm: StockForm = {
+  product: "",
+  warehouse: "",
+  quantity: "",
+  minimumStock: "",
+};
+
 const formatCurrency = (value: number) =>
   new Intl.NumberFormat("en-GH", {
     style: "currency",
     currency: "GHS",
     maximumFractionDigits: 0,
   }).format(value);
+
+const getStockStatus = (
+  quantity: number,
+  minimumStock: number,
+): StockStatus => {
+  if (quantity <= 0) {
+    return "Out of Stock";
+  }
+
+  if (quantity <= minimumStock) {
+    return "Low Stock";
+  }
+
+  return "In Stock";
+};
 
 const getStatusClass = (status: StockStatus) => {
   if (status === "In Stock") {
@@ -215,8 +216,6 @@ const getStatusClass = (status: StockStatus) => {
 
 const Stocks = () => {
   const [stock, setStock] = useState<StockItem[]>(initialStock);
-  const [movements, setMovements] =
-    useState<StockMovement[]>(initialMovements);
 
   const [search, setSearch] = useState("");
   const [warehouseFilter, setWarehouseFilter] =
@@ -226,17 +225,11 @@ const Stocks = () => {
   const [statusFilter, setStatusFilter] =
     useState("All Statuses");
 
-  const [selectedItem, setSelectedItem] =
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [editingItem, setEditingItem] =
     useState<StockItem | null>(null);
-  const [isAdjustmentOpen, setIsAdjustmentOpen] =
-    useState(false);
-
-  const [adjustmentType, setAdjustmentType] =
-    useState<"add" | "remove">("add");
-  const [adjustmentQuantity, setAdjustmentQuantity] =
-    useState("");
-  const [adjustmentReason, setAdjustmentReason] =
-    useState("");
+  const [form, setForm] = useState<StockForm>(emptyForm);
+  const [formError, setFormError] = useState("");
 
   const totals = useMemo(() => {
     const totalQuantity = stock.reduce(
@@ -302,92 +295,162 @@ const Stocks = () => {
     statusFilter,
   ]);
 
-  const openAdjustment = (item: StockItem) => {
-    setSelectedItem(item);
-    setAdjustmentType("add");
-    setAdjustmentQuantity("");
-    setAdjustmentReason("");
-    setIsAdjustmentOpen(true);
+  const openCreateForm = () => {
+    setEditingItem(null);
+    setForm(emptyForm);
+    setFormError("");
+    setIsFormOpen(true);
   };
 
-  const closeAdjustment = () => {
-    setIsAdjustmentOpen(false);
-    setSelectedItem(null);
-    setAdjustmentQuantity("");
-    setAdjustmentReason("");
+  const openEditForm = (item: StockItem) => {
+    setEditingItem(item);
+
+    setForm({
+      product: item.product,
+      warehouse: item.warehouse,
+      quantity: String(item.quantity),
+      minimumStock: String(item.minimumStock),
+    });
+
+    setFormError("");
+    setIsFormOpen(true);
   };
 
-  const handleAdjustment = () => {
+  const closeForm = () => {
+    setIsFormOpen(false);
+    setEditingItem(null);
+    setForm(emptyForm);
+    setFormError("");
+  };
+
+  const handleProductChange = (product: string) => {
+    setForm((current) => ({
+      ...current,
+      product,
+    }));
+    setFormError("");
+  };
+
+  const handleFormChange = (
+    field: keyof StockForm,
+    value: string,
+  ) => {
+    setForm((current) => ({
+      ...current,
+      [field]: value,
+    }));
+    setFormError("");
+  };
+
+  const handleSubmit = () => {
+    const quantity = Number(form.quantity);
+    const minimumStock = Number(form.minimumStock);
+
+    if (!form.product || !form.warehouse) {
+      setFormError(
+        "Product and warehouse are required.",
+      );
+      return;
+    }
+
     if (
-      !selectedItem ||
-      !adjustmentQuantity ||
-      !adjustmentReason.trim()
+      !Number.isFinite(quantity) ||
+      quantity < 0
     ) {
+      setFormError(
+        "Quantity must be zero or greater.",
+      );
       return;
     }
 
-    const quantity = Number(adjustmentQuantity);
-
-    if (!Number.isFinite(quantity) || quantity <= 0) {
+    if (
+      !Number.isFinite(minimumStock) ||
+      minimumStock < 0
+    ) {
+      setFormError(
+        "Minimum stock must be zero or greater.",
+      );
       return;
     }
 
-    const change =
-      adjustmentType === "add" ? quantity : -quantity;
+    const product = productOptions.find(
+      (item) => item.value === form.product,
+    );
+
+    if (!product) {
+      setFormError("Selected product could not be found.");
+      return;
+    }
+
+    if (!editingItem) {
+      const alreadyExists = stock.some(
+        (item) =>
+          item.product === form.product &&
+          item.warehouse === form.warehouse,
+      );
+
+      if (alreadyExists) {
+        setFormError(
+          "This product already has a stock record in the selected warehouse.",
+        );
+        return;
+      }
+
+      const newStock: StockItem = {
+        id: crypto.randomUUID(),
+        product: product.label,
+        sku: product.sku,
+        warehouse: form.warehouse,
+        category: product.category,
+        quantity,
+        reserved: 0,
+        minimumStock,
+        value: quantity * product.unitValue,
+        status: getStockStatus(
+          quantity,
+          minimumStock,
+        ),
+      };
+
+      setStock((current) => [newStock, ...current]);
+      closeForm();
+      return;
+    }
 
     setStock((current) =>
       current.map((item) => {
-        if (item.id !== selectedItem.id) {
+        if (item.id !== editingItem.id) {
           return item;
         }
 
-        const nextQuantity = Math.max(
-          0,
-          item.quantity + change,
+        const nextStatus = getStockStatus(
+          item.quantity,
+          minimumStock,
         );
-
-        const nextStatus: StockStatus =
-          nextQuantity === 0
-            ? "Out of Stock"
-            : nextQuantity <= item.minimumStock
-              ? "Low Stock"
-              : "In Stock";
 
         return {
           ...item,
-          quantity: nextQuantity,
-          value:
-            nextQuantity === 0
-              ? 0
-              : (item.value / Math.max(item.quantity, 1)) *
-                nextQuantity,
+          minimumStock,
           status: nextStatus,
         };
       }),
     );
 
-    const movement: StockMovement = {
-      id: crypto.randomUUID(),
-      date: new Date().toLocaleString("en-GB", {
-        year: "numeric",
-        month: "2-digit",
-        day: "2-digit",
-        hour: "2-digit",
-        minute: "2-digit",
-      }),
-      product: selectedItem.product,
-      type: "Adjustment",
-      quantity: change,
-      warehouse: selectedItem.warehouse,
-      reference: `ADJ-${String(movements.length + 1).padStart(
-        4,
-        "0",
-      )}`,
-      user: "Admin",
-    };
+    closeForm();
+  };
 
-    setMovements((current) => [movement, ...current]);
-    closeAdjustment();
+  const handleDelete = (item: StockItem) => {
+    const confirmed = window.confirm(
+      `Delete the stock record for ${item.product} in ${item.warehouse}?`,
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    setStock((current) =>
+      current.filter((stockItem) => stockItem.id !== item.id),
+    );
   };
 
   return (
@@ -396,24 +459,18 @@ const Stocks = () => {
         <div>
           <h1>Stock</h1>
           <p>
-            Monitor inventory levels and stock movements across
-            your warehouses.
+            Manage product stock records across your
+            warehouses.
           </p>
         </div>
 
         <button
           type="button"
           className={styles.primaryButton}
-          onClick={() => {
-            const firstItem = filteredStock[0] ?? stock[0];
-
-            if (firstItem) {
-              openAdjustment(firstItem);
-            }
-          }}
+          onClick={openCreateForm}
         >
-          <SlidersHorizontal size={17} aria-hidden="true" />
-          Adjust Stock
+          <Plus size={17} aria-hidden="true" />
+          Create Stock
         </button>
       </header>
 
@@ -424,14 +481,14 @@ const Stocks = () => {
           </div>
 
           <div>
-            <span>Total Items</span>
+            <span>Stock Records</span>
             <strong>{totals.totalItems}</strong>
           </div>
         </article>
 
         <article className={styles.summaryCard}>
           <div className={styles.summaryIcon}>
-            <ClipboardList size={19} aria-hidden="true" />
+            <Package size={19} aria-hidden="true" />
           </div>
 
           <div>
@@ -442,7 +499,7 @@ const Stocks = () => {
 
         <article className={styles.summaryCard}>
           <div className={styles.summaryIcon}>
-            <TriangleAlert size={19} aria-hidden="true" />
+            <Package size={19} aria-hidden="true" />
           </div>
 
           <div>
@@ -453,7 +510,7 @@ const Stocks = () => {
 
         <article className={styles.summaryCard}>
           <div className={styles.summaryIcon}>
-            <TriangleAlert size={19} aria-hidden="true" />
+            <Package size={19} aria-hidden="true" />
           </div>
 
           <div>
@@ -469,7 +526,9 @@ const Stocks = () => {
 
           <div>
             <span>Stock Value</span>
-            <strong>{formatCurrency(totals.stockValue)}</strong>
+            <strong>
+              {formatCurrency(totals.stockValue)}
+            </strong>
           </div>
         </article>
       </section>
@@ -479,7 +538,7 @@ const Stocks = () => {
           <div>
             <h2>Current Stock</h2>
             <span>
-              {filteredStock.length} inventory item
+              {filteredStock.length} stock record
               {filteredStock.length === 1 ? "" : "s"}
             </span>
           </div>
@@ -505,19 +564,30 @@ const Stocks = () => {
           </div>
 
           <label className={styles.selectWrapper}>
-            <span className={styles.srOnly}>Warehouse</span>
+            <span className={styles.srOnly}>
+              Warehouse
+            </span>
+
             <select
               value={warehouseFilter}
               onChange={(event) =>
                 setWarehouseFilter(event.target.value)
               }
             >
+              <option value="All Warehouses">
+                All Warehouses
+              </option>
+
               {warehouses.map((warehouse) => (
-                <option key={warehouse} value={warehouse}>
+                <option
+                  key={warehouse}
+                  value={warehouse}
+                >
                   {warehouse}
                 </option>
               ))}
             </select>
+
             <ChevronDown
               size={16}
               aria-hidden="true"
@@ -525,7 +595,10 @@ const Stocks = () => {
           </label>
 
           <label className={styles.selectWrapper}>
-            <span className={styles.srOnly}>Category</span>
+            <span className={styles.srOnly}>
+              Category
+            </span>
+
             <select
               value={categoryFilter}
               onChange={(event) =>
@@ -533,11 +606,15 @@ const Stocks = () => {
               }
             >
               {categories.map((category) => (
-                <option key={category} value={category}>
+                <option
+                  key={category}
+                  value={category}
+                >
                   {category}
                 </option>
               ))}
             </select>
+
             <ChevronDown
               size={16}
               aria-hidden="true"
@@ -545,7 +622,10 @@ const Stocks = () => {
           </label>
 
           <label className={styles.selectWrapper}>
-            <span className={styles.srOnly}>Stock status</span>
+            <span className={styles.srOnly}>
+              Stock status
+            </span>
+
             <select
               value={statusFilter}
               onChange={(event) =>
@@ -553,11 +633,15 @@ const Stocks = () => {
               }
             >
               {statuses.map((status) => (
-                <option key={status} value={status}>
+                <option
+                  key={status}
+                  value={status}
+                >
                   {status}
                 </option>
               ))}
             </select>
+
             <ChevronDown
               size={16}
               aria-hidden="true"
@@ -575,9 +659,10 @@ const Stocks = () => {
                 <th>Quantity</th>
                 <th>Reserved</th>
                 <th>Available</th>
+                <th>Minimum</th>
                 <th>Status</th>
                 <th>Value</th>
-                <th>Action</th>
+                <th>Actions</th>
               </tr>
             </thead>
 
@@ -612,6 +697,8 @@ const Stocks = () => {
                     )}
                   </td>
 
+                  <td>{item.minimumStock}</td>
+
                   <td>
                     <span
                       className={`${styles.status} ${getStatusClass(
@@ -622,16 +709,43 @@ const Stocks = () => {
                     </span>
                   </td>
 
-                  <td>{formatCurrency(item.value)}</td>
+                  <td>
+                    {formatCurrency(item.value)}
+                  </td>
 
                   <td>
-                    <button
-                      type="button"
-                      className={styles.actionButton}
-                      onClick={() => openAdjustment(item)}
-                    >
-                      Adjust
-                    </button>
+                    <div className={styles.actions}>
+                      <button
+                        type="button"
+                        className={styles.actionButton}
+                        onClick={() =>
+                          openEditForm(item)
+                        }
+                        aria-label={`Edit ${item.product} stock`}
+                      >
+                        <Edit3
+                          size={15}
+                          aria-hidden="true"
+                        />
+                        Edit
+                      </button>
+
+                      <button
+                        type="button"
+                        className={
+                          styles.deleteButton
+                        }
+                        onClick={() =>
+                          handleDelete(item)
+                        }
+                        aria-label={`Delete ${item.product} stock`}
+                      >
+                        <Trash2
+                          size={15}
+                          aria-hidden="true"
+                        />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -639,16 +753,19 @@ const Stocks = () => {
               {filteredStock.length === 0 && (
                 <tr>
                   <td
-                    colSpan={9}
+                    colSpan={10}
                     className={styles.emptyCell}
                   >
                     <Package
                       size={32}
                       aria-hidden="true"
                     />
+
                     <strong>No stock found</strong>
+
                     <span>
-                      Try changing your search or filters.
+                      Try changing your search or
+                      filters.
                     </span>
                   </td>
                 </tr>
@@ -658,77 +775,13 @@ const Stocks = () => {
         </div>
       </section>
 
-      <section className={styles.card}>
-        <div className={styles.cardHeader}>
-          <div>
-            <h2>Stock Movements</h2>
-            <span>
-              Recent changes to your inventory
-            </span>
-          </div>
-        </div>
-
-        <div className={styles.tableWrapper}>
-          <table className={styles.table}>
-            <thead>
-              <tr>
-                <th>Date</th>
-                <th>Product</th>
-                <th>Type</th>
-                <th>Quantity</th>
-                <th>Warehouse</th>
-                <th>Reference</th>
-                <th>User</th>
-              </tr>
-            </thead>
-
-            <tbody>
-              {movements.map((movement) => (
-                <tr key={movement.id}>
-                  <td>{movement.date}</td>
-
-                  <td>
-                    <strong className={styles.movementProduct}>
-                      {movement.product}
-                    </strong>
-                  </td>
-
-                  <td>
-                    <span className={styles.movementType}>
-                      {movement.type}
-                    </span>
-                  </td>
-
-                  <td>
-                    <span
-                      className={
-                        movement.quantity >= 0
-                          ? styles.quantityIn
-                          : styles.quantityOut
-                      }
-                    >
-                      {movement.quantity >= 0 ? "+" : ""}
-                      {movement.quantity}
-                    </span>
-                  </td>
-
-                  <td>{movement.warehouse}</td>
-                  <td>{movement.reference}</td>
-                  <td>{movement.user}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </section>
-
-      {isAdjustmentOpen && selectedItem && (
+      {isFormOpen && (
         <div
           className={styles.modalOverlay}
           role="presentation"
           onMouseDown={(event) => {
             if (event.target === event.currentTarget) {
-              closeAdjustment();
+              closeForm();
             }
           }}
         >
@@ -736,121 +789,193 @@ const Stocks = () => {
             className={styles.modal}
             role="dialog"
             aria-modal="true"
-            aria-labelledby="adjust-stock-title"
+            aria-labelledby="stock-form-title"
           >
             <header className={styles.modalHeader}>
               <div>
-                <h2 id="adjust-stock-title">
-                  Adjust Stock
+                <h2 id="stock-form-title">
+                  {editingItem
+                    ? "Edit Stock"
+                    : "Create Stock"}
                 </h2>
+
                 <p>
-                  Update the inventory quantity for this
-                  product.
+                  {editingItem
+                    ? "Update the stock record settings."
+                    : "Create a stock record for a product in a warehouse."}
                 </p>
               </div>
 
               <button
                 type="button"
                 className={styles.closeButton}
-                onClick={closeAdjustment}
-                aria-label="Close adjustment dialog"
+                onClick={closeForm}
+                aria-label="Close stock form"
               >
-                <X size={18} aria-hidden="true" />
+                <X
+                  size={18}
+                  aria-hidden="true"
+                />
               </button>
             </header>
 
             <div className={styles.modalContent}>
-              <div className={styles.productSummary}>
-                <div>
-                  <strong>{selectedItem.product}</strong>
-                  <span>{selectedItem.sku}</span>
-                </div>
-
-                <div>
-                  <small>Current Stock</small>
-                  <strong>{selectedItem.quantity}</strong>
-                </div>
-              </div>
-
-              <div className={styles.adjustmentTypes}>
-                <button
-                  type="button"
-                  className={
-                    adjustmentType === "add"
-                      ? styles.adjustmentTypeActive
-                      : styles.adjustmentType
-                  }
-                  onClick={() =>
-                    setAdjustmentType("add")
-                  }
+              {formError && (
+                <div
+                  className={styles.formError}
+                  role="alert"
                 >
-                  <ArrowDownToLine
-                    size={18}
-                    aria-hidden="true"
-                  />
-                  <span>
-                    <strong>Add Stock</strong>
-                    <small>Increase inventory</small>
-                  </span>
-                </button>
-
-                <button
-                  type="button"
-                  className={
-                    adjustmentType === "remove"
-                      ? styles.adjustmentTypeActive
-                      : styles.adjustmentType
-                  }
-                  onClick={() =>
-                    setAdjustmentType("remove")
-                  }
-                >
-                  <ArrowUpFromLine
-                    size={18}
-                    aria-hidden="true"
-                  />
-                  <span>
-                    <strong>Remove Stock</strong>
-                    <small>Decrease inventory</small>
-                  </span>
-                </button>
-              </div>
+                  {formError}
+                </div>
+              )}
 
               <label className={styles.formField}>
-                <span>Quantity</span>
-                <input
-                  type="number"
-                  min="1"
-                  value={adjustmentQuantity}
+                <span>
+                  Product
+                  <b>*</b>
+                </span>
+
+                <select
+                  value={form.product}
                   onChange={(event) =>
-                    setAdjustmentQuantity(
+                    handleProductChange(
                       event.target.value,
                     )
                   }
-                  placeholder="Enter quantity"
-                />
+                  disabled={Boolean(editingItem)}
+                >
+                  <option value="">
+                    Select product
+                  </option>
+
+                  {productOptions.map((product) => (
+                    <option
+                      key={product.value}
+                      value={product.value}
+                    >
+                      {product.label}
+                    </option>
+                  ))}
+                </select>
               </label>
 
+              {form.product && (
+                <div className={styles.productInfo}>
+                  {(() => {
+                    const product =
+                      productOptions.find(
+                        (item) =>
+                          item.value === form.product,
+                      );
+
+                    if (!product) {
+                      return null;
+                    }
+
+                    return (
+                      <>
+                        <span>
+                          SKU: {product.sku}
+                        </span>
+                        <span>
+                          Category: {product.category}
+                        </span>
+                      </>
+                    );
+                  })()}
+                </div>
+              )}
+
               <label className={styles.formField}>
-                <span>Reason</span>
-                <textarea
-                  value={adjustmentReason}
+                <span>
+                  Warehouse
+                  <b>*</b>
+                </span>
+
+                <select
+                  value={form.warehouse}
                   onChange={(event) =>
-                    setAdjustmentReason(
+                    handleFormChange(
+                      "warehouse",
                       event.target.value,
                     )
                   }
-                  placeholder="Why is the stock being adjusted?"
-                  rows={3}
-                />
+                  disabled={Boolean(editingItem)}
+                >
+                  <option value="">
+                    Select warehouse
+                  </option>
+
+                  {warehouses.map((warehouse) => (
+                    <option
+                      key={warehouse}
+                      value={warehouse}
+                    >
+                      {warehouse}
+                    </option>
+                  ))}
+                </select>
               </label>
+
+              <div className={styles.formGrid}>
+                <label className={styles.formField}>
+                  <span>
+                    {editingItem
+                      ? "Current Quantity"
+                      : "Opening Quantity"}
+                    {!editingItem && <b>*</b>}
+                  </span>
+
+                  <input
+                    type="number"
+                    min="0"
+                    value={form.quantity}
+                    onChange={(event) =>
+                      handleFormChange(
+                        "quantity",
+                        event.target.value,
+                      )
+                    }
+                    disabled={Boolean(editingItem)}
+                    placeholder="0"
+                  />
+
+                  {editingItem && (
+                    <small>
+                      Quantity is changed through stock
+                      movements.
+                    </small>
+                  )}
+                </label>
+
+                <label className={styles.formField}>
+                  <span>Minimum Stock</span>
+
+                  <input
+                    type="number"
+                    min="0"
+                    value={form.minimumStock}
+                    onChange={(event) =>
+                      handleFormChange(
+                        "minimumStock",
+                        event.target.value,
+                      )
+                    }
+                    placeholder="0"
+                  />
+
+                  <small>
+                    Used to determine low-stock status.
+                  </small>
+                </label>
+              </div>
             </div>
 
             <footer className={styles.modalFooter}>
               <button
                 type="button"
                 className={styles.secondaryButton}
-                onClick={closeAdjustment}
+                onClick={closeForm}
               >
                 Cancel
               </button>
@@ -858,9 +983,11 @@ const Stocks = () => {
               <button
                 type="button"
                 className={styles.primaryButton}
-                onClick={handleAdjustment}
+                onClick={handleSubmit}
               >
-                Save Adjustment
+                {editingItem
+                  ? "Save Changes"
+                  : "Create Stock"}
               </button>
             </footer>
           </section>

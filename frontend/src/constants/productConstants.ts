@@ -19,6 +19,7 @@ export const BASE_UNITS: {
   label: string;
 }[] = [
   { value: "piece", label: "Piece" },
+  { value: "bag", label: "Bag" },
   { value: "box", label: "Box" },
   { value: "pack", label: "Pack" },
   { value: "kg", label: "Kilogram" },

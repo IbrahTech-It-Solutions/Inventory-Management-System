@@ -148,7 +148,7 @@ const Settings = () => {
                                 </button>
                             );
                         })}
-                        {/* <InstallPWA /> */}
+                        <InstallPWA />
                     </nav>
                 </aside>
 
