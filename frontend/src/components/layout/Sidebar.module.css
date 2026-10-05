@@ -1,20 +1,15 @@
 .sidebar {
   position: relative;
   z-index: 1100;
-
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-
   width: 248px;
   min-width: 248px;
   height: 100vh;
-
   border-right: 1px solid var(--color-border);
-
   background: var(--color-surface);
   color: var(--color-text);
-
   transition:
     width 200ms ease,
     min-width 200ms ease,
@@ -76,19 +71,14 @@
   display: flex;
   align-items: center;
   justify-content: center;
-
   width: 34px;
   height: 34px;
   flex-shrink: 0;
-
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
-
   background: var(--color-surface);
   color: var(--color-text-muted);
-
   cursor: pointer;
-
   transition:
     background-color 150ms ease,
     border-color 150ms ease,
@@ -108,6 +98,64 @@
   outline-offset: 2px;
 }
 
+.breadcrumb {
+  position: absolute;
+  top: 8px;
+  left: calc(100% + 16px);
+  z-index: 1200;
+  display: flex;
+  align-items: center;
+  width: max-content;
+  min-width: 180px;
+  max-width: min(420px, calc(100vw - 110px));
+  min-height: 38px;
+  gap: 5px;
+  padding: 0 13px;
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-sm);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  white-space: nowrap;
+  pointer-events: none;
+    backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  
+}
+
+.breadcrumbHome {
+  flex-shrink: 0;
+  color: var(--color-text-muted);
+  font-weight: var(--font-weight-medium);
+}
+
+.breadcrumbItem,
+.breadcrumbCurrent {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  gap: 5px;
+}
+
+.breadcrumbItem {
+  flex-shrink: 0;
+  color: var(--color-text-muted);
+}
+
+.breadcrumbCurrent {
+  overflow: hidden;
+  color: var(--color-primary);
+  font-weight: var(--font-weight-semibold);
+}
+
+.breadcrumbCurrent span {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
 .navigation {
   display: grid;
   gap: 4px;
@@ -120,15 +168,11 @@
   min-height: 44px;
   gap: 12px;
   padding: 0 12px;
-
   border-radius: var(--radius-md);
-
   color: var(--color-text-muted);
   text-decoration: none;
-
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-medium);
-
   transition:
     background-color 150ms ease,
     color 150ms ease;
@@ -146,7 +190,6 @@
     var(--color-primary) 10%,
     transparent
   );
-
   color: var(--color-primary);
   font-weight: var(--font-weight-semibold);
 }
@@ -171,30 +214,23 @@
 
 .groupButton {
   position: relative;
-
   display: flex;
   align-items: center;
-
   width: 100%;
   min-height: 40px;
   gap: 12px;
   padding: 0 12px;
-
   border: 0;
   border-radius: var(--radius-md);
-
   background: transparent;
   color: var(--color-text-muted);
-
   font: inherit;
   font-size: var(--font-size-xs);
   font-weight: var(--font-weight-bold);
   letter-spacing: 0.04em;
   text-align: left;
   text-transform: uppercase;
-
   cursor: pointer;
-
   transition:
     background-color 150ms ease,
     color 150ms ease;
@@ -202,6 +238,10 @@
 
 .groupButton:hover {
   background: var(--color-background);
+  color: var(--color-text);
+}
+
+.groupButtonOpen {
   color: var(--color-text);
 }
 
@@ -224,7 +264,6 @@
 .groupChevron {
   flex-shrink: 0;
   margin-left: auto;
-
   transition: transform 180ms ease;
 }
 
@@ -235,29 +274,23 @@
 .submenu {
   display: grid;
   gap: 2px;
-
   margin: 3px 0 4px 18px;
   padding-left: 13px;
-
   border-left: 1px solid var(--color-border);
+  animation: submenuIn 160ms ease-out;
 }
 
 .subLink {
   display: flex;
   align-items: center;
-
   min-height: 40px;
   gap: 10px;
   padding: 0 10px;
-
   border-radius: var(--radius-sm);
-
   color: var(--color-text-muted);
   text-decoration: none;
-
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-medium);
-
   transition:
     background-color 140ms ease,
     color 140ms ease;
@@ -275,7 +308,6 @@
     var(--color-primary) 10%,
     transparent
   );
-
   color: var(--color-primary);
   font-weight: var(--font-weight-semibold);
 }
@@ -284,23 +316,16 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-
   flex: 0 0 18px;
-
   color: currentColor;
 }
-
-/* Collapsed group arrow */
 
 .collapsedArrow {
   position: absolute;
   top: 50%;
   right: 2px;
-
   opacity: 0;
-
   transform: translate3d(-3px, -50%, 0);
-
   transition:
     opacity 160ms ease,
     transform 160ms ease;
@@ -313,37 +338,24 @@
   transform: translate3d(0, -50%, 0);
 }
 
-/*
- * IMPORTANT:
- * The collapsed submenu is fixed to the viewport.
- * It is therefore not trapped inside .top's overflow-y container.
- */
-
 .floatingSubmenu {
   position: fixed;
   z-index: 2000;
-
   width: 220px;
   padding: 7px;
-
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
-
   background: var(--color-surface);
   box-shadow: var(--shadow-md);
-
   animation: floatingSubmenuIn 160ms ease-out;
 }
 
 .floatingSubmenuHeader {
   display: flex;
   align-items: center;
-
   min-height: 34px;
   padding: 6px 10px;
-
   color: var(--color-text-muted);
-
   font-size: var(--font-size-xs);
   font-weight: var(--font-weight-semibold);
   letter-spacing: 0.04em;
@@ -353,19 +365,14 @@
 .floatingSubLink {
   display: flex;
   align-items: center;
-
   min-height: 40px;
   gap: 10px;
   padding: 8px 10px;
-
   border-radius: var(--radius-sm);
-
   color: var(--color-text-muted);
   text-decoration: none;
-
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-medium);
-
   transition:
     background-color 140ms ease,
     color 140ms ease;
@@ -383,7 +390,6 @@
     var(--color-primary) 10%,
     transparent
   );
-
   color: var(--color-primary);
   font-weight: var(--font-weight-semibold);
 }
@@ -392,32 +398,14 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-
   flex: 0 0 18px;
-
   color: currentColor;
 }
-
-@keyframes floatingSubmenuIn {
-  from {
-    opacity: 0;
-    transform: translate3d(-6px, 0, 0);
-  }
-
-  to {
-    opacity: 1;
-    transform: translate3d(0, 0, 0);
-  }
-}
-
-/* Footer */
 
 .footer {
   display: grid;
   gap: 6px;
-
   padding: 12px;
-
   border-top: 1px solid var(--color-border);
 }
 
@@ -425,22 +413,16 @@
 .language {
   display: flex;
   align-items: center;
-
   width: 100%;
   min-height: 44px;
   gap: 10px;
   padding: 6px 8px;
-
   border: 0;
   border-radius: var(--radius-md);
-
   background: transparent;
   color: var(--color-text);
-
   text-align: left;
-
   cursor: pointer;
-
   transition: background-color 150ms ease;
 }
 
@@ -459,16 +441,12 @@
   display: flex;
   align-items: center;
   justify-content: center;
-
   width: 32px;
   height: 32px;
   flex-shrink: 0;
-
   border-radius: 50%;
-
   background: var(--color-primary);
   color: var(--color-primary-text);
-
   font-size: var(--font-size-xs);
   font-weight: var(--font-weight-bold);
 }
@@ -482,7 +460,6 @@
 .userName,
 .userRole {
   overflow: hidden;
-
   white-space: nowrap;
   text-overflow: ellipsis;
 }
@@ -512,28 +489,46 @@
   display: none;
 }
 
+@keyframes submenuIn {
+  from {
+    opacity: 0;
+    transform: translateY(-3px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes floatingSubmenuIn {
+  from {
+    opacity: 0;
+    transform: translate3d(-6px, 0, 0);
+  }
+
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
 @media (max-width: 800px) {
   .mobileMenu {
     position: fixed;
     top: 12px;
     left: 12px;
     z-index: 1000;
-
     display: flex;
     align-items: center;
     justify-content: center;
-
     width: 40px;
     height: 40px;
-
     border: 1px solid var(--color-border);
     border-radius: var(--radius-md);
-
     background: var(--color-surface);
     color: var(--color-text);
-
     box-shadow: var(--shadow-sm);
-
     cursor: pointer;
   }
 
@@ -550,12 +545,9 @@
   .sidebar {
     position: fixed;
     inset: 0 auto 0 0;
-
     width: min(300px, 88vw);
     min-width: min(300px, 88vw);
-
     transform: translateX(-100%);
-
     box-shadow: var(--shadow-md);
   }
 
@@ -576,10 +568,8 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-
     min-height: 64px;
     padding: 0 16px;
-
     border-bottom: 1px solid var(--color-border);
   }
 
@@ -587,17 +577,17 @@
     flex: 1;
   }
 
+  .breadcrumb {
+    display: none;
+  }
+
   .overlay {
     position: fixed;
     inset: 0;
     z-index: 1050;
-
     display: block;
-
     border: 0;
-
     background: rgb(15 23 42 / 0.45);
-
     cursor: pointer;
   }
 
@@ -627,12 +617,9 @@
 
   .floatingSubmenu {
     position: static;
-
     width: auto;
     margin: 4px 0 4px 18px;
-
     box-shadow: none;
-
     animation: none;
   }
 
@@ -646,6 +633,7 @@
   .groupChevron,
   .collapsedArrow,
   .floatingSubmenu,
+  .submenu,
   .link,
   .subLink,
   .floatingSubLink,

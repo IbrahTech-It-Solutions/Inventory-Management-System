@@ -11,6 +11,7 @@ import {
 import ThemeUI from "../../components/ui/ThemeUI";
 import styles from "./Settings.module.css";
 import InstallPWA from "../../components/ui/pwa/InstallPWA";
+import Select from "../../components/ui/select/Select";
 
 type UserRole = "admin" | "manager" | "staff" | "customer";
 
@@ -43,6 +44,7 @@ const Settings = () => {
     const [role] = useState<UserRole>("admin");
     const [language, setLanguage] = useState("English");
     const [activeSection, setActiveSection] = useState("personal");
+    const [lang, setLang] = useState("");
 
     const visibleWarehouses = useMemo(() => {
         if (role === "admin") {
@@ -87,8 +89,6 @@ const Settings = () => {
         <section className={styles.page}>
             <div className={styles.header}>
                 <div>
-                    <span className={styles.eyebrow}>Settings</span>
-
                     <h1>Account settings</h1>
 
                     <p>
@@ -276,17 +276,27 @@ const Settings = () => {
                                 <label htmlFor="language">
                                     Application language
                                 </label>
-
-                                <select
-                                    id="language"
-                                    value={language}
-                                    onChange={(event) =>
-                                        setLanguage(event.target.value)
-                                    }
-                                >
-                                    <option value="English">English</option>
-                                    <option value="French">Français</option>
-                                </select>
+                                <Select
+                                    label="Supplier"
+                                    value={lang}
+                                    options={[
+                                        {
+                                            value: "en",
+                                            label: "English",
+                                        },
+                                        {
+                                            value: "fr",
+                                            label: "French",
+                                        },
+                                        {
+                                            value: "es",
+                                            label: "Spanish",
+                                        },
+                                    ]}
+                                    onChange={setLang}
+                                    placeholder="Select Language"
+                                    required
+                                />
                             </div>
 
                             <div className={styles.infoBox}>

@@ -23,6 +23,9 @@ import Reports from "../pages/Reports/Reports";
 import Warehouses from "../pages/warehouses/Warehouses";
 import Activity from "../pages/activity/Activity";
 import Notifications from "../pages/notifications/Notifications";
+import StockMovements from "../pages/stockMovements/StockMovements";
+import Login from "../pages/auth/Login";
+import CreateOrganization from "../pages/auth/CreateOrganization";
 
 export const AppRoutes = () => {
   const [isInitializing, setIsInitializing] = useState(true);
@@ -45,6 +48,9 @@ export const AppRoutes = () => {
   return (
     <>
       <Routes>
+          <Route path="/auth" element={<Login />} />
+          <Route path="/create-organization" element={<CreateOrganization />} />
+
         <Route element={<AuthLayout />}>
           <Route path="/" element={<Home />} />
         </Route>
@@ -123,11 +129,11 @@ export const AppRoutes = () => {
           />
 
           <Route
-            path="/purchases"
+            path="/stock-movements"
             element={
               <>
                 <ScrollToTop />
-                <Purchases />
+                <StockMovements />
               </>
             }
           />

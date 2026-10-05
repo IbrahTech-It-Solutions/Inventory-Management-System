@@ -13,7 +13,7 @@ export default defineConfig({
         name: "InventorySystem",
         short_name: "InventorySystem",
         description: "Inventory management system",
-        start_url: "/",
+        start_url: "/dashboard",
         scope: "/",
         display: "standalone",
         theme_color: "var(--color-primary)",

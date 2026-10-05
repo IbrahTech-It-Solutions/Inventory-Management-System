@@ -11,7 +11,7 @@ const DashboardLayout = () => {
         <Sidebar />
 
         <main className={styles.main}>
-          <div   data-scroll-container className={styles.container}>
+          <div data-scroll-container className={styles.container}>
             <Outlet />
           </div>
         </main>

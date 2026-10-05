@@ -47,6 +47,24 @@ export const Header = () => {
           >
             Dashboard
           </NavLink>
+           <NavLink
+            to="/auth"
+            className={({ isActive }) =>
+              isActive ? styles.active : undefined
+            }
+            onClick={handleNavigation}
+          >
+            Login
+          </NavLink>
+          <NavLink
+            to="/create-organization"
+            className={({ isActive }) =>
+              isActive ? styles.active : undefined
+            }
+            onClick={handleNavigation}
+          >
+            Join Us
+          </NavLink>
 
           <div className={styles.theme}>
             <ThemeToggle />
